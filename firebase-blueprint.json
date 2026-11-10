@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "A family vehicle profile tracking VIN, license plate, insurance, and ownership.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Google Auth UID"
+        },
+        "familyMember": {
+          "type": "string",
+          "description": "Family member label such as My Car, Wife, Kid (Alex)"
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Friendly name of the vehicle"
+        },
+        "make": {
+          "type": "string",
+          "description": "Vehicle make (e.g., Toyota, Honda)"
+        },
+        "model": {
+          "type": "string",
+          "description": "Vehicle model (e.g., Camry, Civic)"
+        },
+        "year": {
+          "type": "integer",
+          "description": "Model year"
+        },
+        "vin": {
+          "type": "string",
+          "description": "Vehicle Identification Number"
+        },
+        "licensePlate": {
+          "type": "string",
+          "description": "License plate number"
+        },
+        "state": {
+          "type": "string",
+          "description": "Registration state or jurisdiction"
+        },
+        "currentMileage": {
+          "type": "integer",
+          "description": "Current recorded odometer mileage"
+        },
+        "insuranceCompany": {
+          "type": "string",
+          "description": "Insurance provider"
+        },
+        "insurancePolicyNumber": {
+          "type": "string",
+          "description": "Insurance policy number"
+        },
+        "insuranceDuration": {
+          "type": "string",
+          "description": "Insurance policy duration (e.g., 6 Months, 1 Year)"
+        },
+        "insuranceStartDate": {
+          "type": "string",
+          "description": "Insurance start date formatted as YYYY-MM-DD"
+        },
+        "insuranceEndDate": {
+          "type": "string",
+          "description": "Insurance end/expiration date formatted as YYYY-MM-DD"
+        },
+        "colorHex": {
+          "type": "string",
+          "description": "Accent color hex code for vehicle badge"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Submitted as FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp. Submitted as FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "familyMember", "make", "model", "year", "vin", "licensePlate", "createdAt", "updatedAt"]
+    },
+    "MaintenanceLog": {
+      "title": "MaintenanceLog",
+      "description": "Service record, repair history item, or inspection log for a vehicle.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Google Auth UID"
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "ID of the associated Vehicle document"
+        },
+        "title": {
+          "type": "string",
+          "description": "Short title of the service or repair"
+        },
+        "logType": {
+          "type": "string",
+          "enum": ["MAINTENANCE", "REPAIR", "INSPECTION"],
+          "description": "Classification of the service"
+        },
+        "serviceDate": {
+          "type": "string",
+          "description": "Date service was performed (YYYY-MM-DD)"
+        },
+        "mileage": {
+          "type": "integer",
+          "description": "Odometer mileage at time of service"
+        },
+        "cost": {
+          "type": "number",
+          "description": "Cost of maintenance or repair"
+        },
+        "serviceProvider": {
+          "type": "string",
+          "description": "Service shop, dealership, or DIY"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Detailed notes on parts replaced or issues found"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Submitted as FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp. Submitted as FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "vehicleId", "title", "logType", "serviceDate", "mileage", "createdAt", "updatedAt"]
+    },
+    "ServiceReminder": {
+      "title": "ServiceReminder",
+      "description": "Upcoming scheduled service or renewal reminder for a vehicle.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Google Auth UID"
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "ID of the associated Vehicle document"
+        },
+        "serviceType": {
+          "type": "string",
+          "description": "Type of service or renewal (e.g. Oil Change, Tire Rotation, Insurance Renewal)"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Target due date (YYYY-MM-DD)"
+        },
+        "dueMileage": {
+          "type": "integer",
+          "description": "Target due mileage threshold"
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Whether this reminder has been completed"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH"],
+          "description": "Urgency of the reminder"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional reminder instructions"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Submitted as FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp. Submitted as FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "vehicleId", "serviceType", "isCompleted", "priority", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/vehicles/{vehicleId}": {
+      "schema": {
+        "$ref": "#/entities/Vehicle"
+      },
+      "description": "Family vehicle collection owned and accessed by authenticated users"
+    },
+    "/maintenance_logs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/MaintenanceLog"
+      },
+      "description": "Maintenance and repair logs owned and accessed by authenticated users"
+    },
+    "/service_reminders/{reminderId}": {
+      "schema": {
+        "$ref": "#/entities/ServiceReminder"
+      },
+      "description": "Upcoming service reminders owned and accessed by authenticated users"
+    }
+  }
+}

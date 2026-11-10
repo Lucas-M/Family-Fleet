@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidVehicle(data) {
+      return data.userId == request.auth.uid &&
+             data.familyMember is string && data.familyMember.size() > 0 && data.familyMember.size() <= 50 &&
+             (!('nickname' in data) || (data.nickname is string && data.nickname.size() <= 50)) &&
+             data.make is string && data.make.size() > 0 && data.make.size() <= 50 &&
+             data.model is string && data.model.size() > 0 && data.model.size() <= 50 &&
+             data.year is int && data.year >= 1900 && data.year <= 2100 &&
+             data.vin is string && data.vin.size() >= 1 && data.vin.size() <= 30 &&
+             data.licensePlate is string && data.licensePlate.size() >= 1 && data.licensePlate.size() <= 20 &&
+             (!('state' in data) || (data.state is string && data.state.size() <= 20)) &&
+             (!('currentMileage' in data) || (data.currentMileage is int && data.currentMileage >= 0)) &&
+             (!('insuranceCompany' in data) || (data.insuranceCompany is string && data.insuranceCompany.size() <= 100)) &&
+             (!('insurancePolicyNumber' in data) || (data.insurancePolicyNumber is string && data.insurancePolicyNumber.size() <= 100)) &&
+             (!('insuranceDuration' in data) || (data.insuranceDuration is string && data.insuranceDuration.size() <= 50)) &&
+             (!('insuranceStartDate' in data) || (data.insuranceStartDate is string && data.insuranceStartDate.size() <= 30)) &&
+             (!('insuranceEndDate' in data) || (data.insuranceEndDate is string && data.insuranceEndDate.size() <= 30)) &&
+             (!('colorHex' in data) || (data.colorHex is string && data.colorHex.size() <= 20)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    function isValidMaintenanceLog(data) {
+      return data.userId == request.auth.uid &&
+             isValidId(data.vehicleId) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.logType in ['MAINTENANCE', 'REPAIR', 'INSPECTION'] &&
+             data.serviceDate is string && data.serviceDate.size() <= 30 &&
+             data.mileage is int && data.mileage >= 0 &&
+             (!('cost' in data) || (data.cost is number && data.cost >= 0)) &&
+             (!('serviceProvider' in data) || (data.serviceProvider is string && data.serviceProvider.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    function isValidServiceReminder(data) {
+      return data.userId == request.auth.uid &&
+             isValidId(data.vehicleId) &&
+             data.serviceType is string && data.serviceType.size() > 0 && data.serviceType.size() <= 100 &&
+             (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 30)) &&
+             (!('dueMileage' in data) || (data.dueMileage is int && data.dueMileage >= 0)) &&
+             data.isCompleted is bool &&
+             data.priority in ['LOW', 'MEDIUM', 'HIGH'] &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    match /vehicles/{vehicleId} {
+      allow get: if isSignedIn() && isValidId(vehicleId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(vehicleId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'familyMember', 'make', 'model', 'year', 'vin', 'licensePlate', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidVehicle(incoming());
+      allow update: if isSignedIn() && isValidId(vehicleId) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidVehicle(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'familyMember', 'nickname', 'make', 'model', 'year', 'vin', 'licensePlate',
+                         'state', 'currentMileage', 'insuranceCompany', 'insurancePolicyNumber',
+                         'insuranceDuration', 'insuranceStartDate', 'insuranceEndDate', 'colorHex', 'notes', 'updatedAt'
+                       ]);
+      allow delete: if isSignedIn() && isValidId(vehicleId) && existing().userId == request.auth.uid;
+    }
+
+    match /maintenance_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'vehicleId', 'title', 'logType', 'serviceDate', 'mileage', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidMaintenanceLog(incoming());
+      allow update: if isSignedIn() && isValidId(logId) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().vehicleId == existing().vehicleId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidMaintenanceLog(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'logType', 'serviceDate', 'mileage', 'cost', 'serviceProvider', 'notes', 'updatedAt'
+                       ]);
+      allow delete: if isSignedIn() && isValidId(logId) && existing().userId == request.auth.uid;
+    }
+
+    match /service_reminders/{reminderId} {
+      allow get: if isSignedIn() && isValidId(reminderId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(reminderId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'vehicleId', 'serviceType', 'isCompleted', 'priority', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidServiceReminder(incoming());
+      allow update: if isSignedIn() && isValidId(reminderId) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().vehicleId == existing().vehicleId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidServiceReminder(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'serviceType', 'dueDate', 'dueMileage', 'isCompleted', 'priority', 'notes', 'updatedAt'
+                       ]);
+      allow delete: if isSignedIn() && isValidId(reminderId) && existing().userId == request.auth.uid;
+    }
+  }
+}

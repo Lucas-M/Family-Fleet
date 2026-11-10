@@ -1,0 +1,6 @@
+{
+  "name": "Family Garage",
+  "description": "Family vehicle database tracking VIN, license plate, insurance policy, maintenance logs, repair history, and service reminders across individual profiles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
